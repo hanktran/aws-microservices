@@ -5,7 +5,9 @@ import {
   DeleteItemCommand,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { PutEventsCommand } from "@aws-sdk/client-eventbridge";
 import { ddbClient } from "./ddbClient";
+import { ebClient } from "./eventBridgeClient";
 
 exports.handler = async function (event) {
   console.log("request:", JSON.stringify(event, undefined, 2));
@@ -132,4 +134,73 @@ const deleteBasket = async (userName) => {
   }
 };
 
-const checkoutBasket = async (event) => {};
+const checkoutBasket = async (event) => {
+  console.log("checkoutBasket");
+
+  const checkoutRequest = JSON.parse(event.body);
+  if (checkoutBasket === null || checkoutRequest.userName === null) {
+    throw new Error(
+      `userName should exist in checkoutRequest: "${checkoutRequest}"`
+    );
+  }
+
+  // Get existing basket with items
+  const basket = await getBasket(checkoutRequest.userName);
+
+  //  Create an event json object with basket items, calculate totalprice, prepare oder create json data to send odering ms
+  const checkoutPayload = prepareOderPayload(checkoutRequest, basket);
+
+  // Publish an event to eventbridge
+  const publishedEvent = await publishCheckoutBasketEvent(checkoutPayload);
+
+  // Remove existing basket
+  await deleteBasket(checkoutRequest.userName);
+};
+
+const prepareOderPayload = (checkoutRequest, basket) => {
+  console.log("prepareOrderPayload");
+
+  try {
+    if (basket === null || basket.items === null) {
+      throw new Error(`basket should exist in items: "${basket}"`);
+    }
+
+    const totalPrice = basket.items.reduce((acc, item) => acc + item.price, 0);
+    checkoutRequest.totalPrice = totalPrice;
+    console.log(checkoutRequest);
+
+    Object.assign(checkoutRequest, basket);
+    console.log("Success prepareOrderPayload, orderPayload:", checkoutRequest);
+
+    return checkoutRequest;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};
+
+const publishCheckoutBasketEvent = async (checkoutPayload) => {
+  console.log("publishCheckoutBasketEvent with payload:", checkoutPayload);
+
+  try {
+    const params = {
+      Entries: [
+        {
+          Source: process.env.EVENT_SOURCE,
+          Detail: JSON.stringify(checkoutPayload),
+          DetailType: process.env.EVENT_DETAILTYPE,
+          Resources: [],
+          EventBusName: process.env.EVENT_BUSNAME,
+        },
+      ],
+    };
+
+    const data = await ebClient.send(new PutEventsCommand(params));
+
+    console.log("Success, event sent; requestId:", data);
+    return data;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};

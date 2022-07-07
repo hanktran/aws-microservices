@@ -14,16 +14,18 @@ export class AwsMicroservicesStack extends Stack {
     const microservices = new SwnMicroservices(this, "Microservices", {
       productTable: database.productTable,
       basketTable: database.basketTable,
+      orderTable: database.orderTable,
     });
 
     const apigateway = new SwnApiGateway(this, "ApiGateway", {
       productMicroservice: microservices.productMicroservice,
       basketMicroservice: microservices.basketMicroservice,
+      orderingMicroservice: microservices.orderingMicroservice,
     });
 
     const eventBus = new SwnEventBus(this, "EventBus", {
       publisherFunction: microservices.basketMicroservice,
-      targerFunction: // TODO,
+      targerFunction: microservices.orderingMicroservice,
     });
   }
 }

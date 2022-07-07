@@ -21,7 +21,7 @@ export class SwnEventBus extends Construct {
       enabled: true,
       description: "When Basket microservice checkout the basket",
       eventPattern: {
-        source: ["com.swn.basket.checkoutbasker"],
+        source: ["com.swn.basket.checkoutbasket"],
         detailType: ["CheckoutBasket"],
       },
       ruleName: "CheckoutBasketRule",

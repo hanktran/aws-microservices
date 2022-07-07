@@ -10,12 +10,14 @@ import { Construct } from "constructs";
 export class SwnDatabase extends Construct {
   public readonly productTable: ITable;
   public readonly basketTable: ITable;
+  public readonly orderTable: ITable;
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
     this.productTable = this.createProductTable();
     this.basketTable = this.createBasketTable();
+    this.orderTable = this.createOrderTable();
   }
 
   // Product DynamoDB Table
@@ -35,7 +37,7 @@ export class SwnDatabase extends Construct {
   }
 
   // Basket DynamoDB Table
-  // product: PK: userName -- items (SET-MAP object)
+  // basket: PK: userName -- items (SET-MAP object)
   //  item1 - { quantity - color - price - productId - productName }
   //  item2 - { quantity - color - price - productId - productName }
   private createBasketTable(): ITable {
@@ -50,5 +52,25 @@ export class SwnDatabase extends Construct {
     });
 
     return basketTable;
+  }
+
+  // Order DynamoDB Table
+  // order: PK: userName - SK: orderDate -- totalPrice - firstName - lastName - email - address - paymentMethod - cardInfo
+  private createOrderTable(): ITable {
+    const orderTable = new Table(this, "order", {
+      partitionKey: {
+        name: "userName",
+        type: AttributeType.STRING,
+      },
+      sortKey: {
+        name: "orderDate",
+        type: AttributeType.STRING,
+      },
+      tableName: "order",
+      removalPolicy: RemovalPolicy.DESTROY,
+      billingMode: BillingMode.PAY_PER_REQUEST,
+    });
+
+    return orderTable;
   }
 }
