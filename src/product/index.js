@@ -48,7 +48,7 @@ exports.handler = async function (event) {
       }),
     };
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return {
       statusCode: 500,
       body: JSON.stringify({
@@ -74,7 +74,7 @@ const getProduct = async (productId) => {
     console.log(Item);
     return Item ? unmarshall(Item) : {};
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 };
@@ -92,7 +92,7 @@ const getAllProducts = async () => {
     console.log(Items);
     return Items ? Items.map((item) => unmarshall(item)) : {};
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   }
 };
