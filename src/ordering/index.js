@@ -9,11 +9,24 @@ import { ddbClient } from "./ddbClient";
 exports.handler = async function (event) {
   console.log("request", JSON.stringify(event, undefined, 2));
 
-  const eventType = event["detail-type"];
-  if (eventType !== undefined) {
+  if (event.Records !== undefined) {
+    await sqsInvocation(event);
+  } else if (event["detail-type"] !== undefined) {
     await eventBrideInvocation(event);
   } else {
     return await apiGatewayInvocation(event);
+  }
+};
+
+const sqsInvocation = async (event) => {
+  console.log(`sqsInvocation with event: ${event}`);
+
+  for (const record of event.Records) {
+    console.log("Record: %j", record);
+    const checkoutEventRequest = JSON.parse(record.body);
+    await createOrder(checkoutEventRequest.detail)
+      .then((res) => console.log(res))
+      .catch((error) => console.error(error));
   }
 };
 
